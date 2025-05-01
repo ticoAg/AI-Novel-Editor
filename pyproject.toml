@@ -5,12 +5,14 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "aiohttp>=3.11.18",
     "fastapi==0.104.1",
     "httpx>=0.28.1",
+    "json-repair>=0.44.1",
     "loguru>=0.7.3",
     "openai==1.76",
     "pydantic==2.4.2",
     "python-dotenv==1.0.0",
     "python-multipart==0.0.6",
-    "uvicorn==0.23.2",
+    "uvicorn[standard]==0.23.2",
 ]

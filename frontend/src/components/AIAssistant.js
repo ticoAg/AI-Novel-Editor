@@ -29,6 +29,24 @@ const AIAssistant = ({ story, getAIAssistance, loading }) => {
         }
     };
 
+    const handleGetAssistance = async () => {
+        if (!story || !story.content) {
+            setAiResponse('请先创建或选择一个包含内容的小说');
+            return;
+        }
+
+        setIsRequesting(true);
+        try {
+            const response = await getAIAssistance(story.content, assistanceType, specificRequest);
+            setAiResponse(response);
+        } catch (error) {
+            console.error('获取建议出错:', error);
+            setAiResponse('获取建议时出错，请稍后再试');
+        } finally {
+            setIsRequesting(false);
+        }
+    }
+
     return (
         <Paper
             elevation={3}

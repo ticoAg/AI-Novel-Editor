@@ -90,7 +90,7 @@ class AIService:
         prompt = f"以下是一个短篇小说的内容:\n\n{story_content}\n\n"
 
         if specific_request:
-            prompt += f"请针对以下具体要求提供文风调整建议: {specific_request}"
+            prompt += f"请根据以下具体要求提供文风调整建议: {specific_request}"
         else:
             prompt += "请分析这个故事的写作风格，并提供2-3个文风优化的建议。考虑语言表达、叙事节奏和氛围营造，提出能够提升文学质量的具体修改建议，并给出示例。"
 
@@ -104,13 +104,67 @@ class AIService:
         prompt += "\n请以分条形式输出大纲，每条简明扼要。"
         return await self._generate_response_by_custom_api(prompt)
 
-    async def generate_title_by_tags(self, tags):
-        """根据标签生成标题"""
+    async def generate_title_by_tags_stream(self, tags):
+        """根据标签流式生成标题"""
         prompt = f"请根据以下标签扩展剧情并为小说生成一个吸引人的标题：{tags}\n输出格式: {{'title': '标题'}}"
-        resp = await self._generate_response_by_custom_api(prompt, max_tokens=50)
-        return json_repair.loads(resp)["title"]
+        payload = {
+            "model": self.model,
+            "messages": [{"role": "user", "content": prompt}],
+            "stream": True,
+            "max_tokens": 50,
+            "enable_thinking": False,
+            "thinking_budget": 512,
+            "min_p": 0.05,
+            "stop": None,
+            "temperature": 0.7,
+            "top_p": 0.7,
+            "top_k": 50,
+            "frequency_penalty": 0.5,
+            "n": 1,
+            "response_format": {"type": "text"},
+        }
+        headers = {"Authorization": f"Bearer {self.api_token}", "Content-Type": "application/json"}
+        try:
+            import aiohttp
 
-    async def generate_outline_by_title_and_tags(self, title, tags):
-        """根据标题和标签生成大纲"""
+            async with aiohttp.ClientSession() as session:
+                async with session.post(self.api_url, json=payload, headers=headers) as resp:
+                    resp.raise_for_status()
+                    async for line in resp.content:
+                        if line:
+                            yield line.decode("utf-8")
+        except Exception as e:
+            yield f"\n[流式生成出错: {str(e)}]"
+        # return await self._generate_response_by_custom_api(prompt)
+
+    async def generate_outline_by_title_and_tags_stream(self, title, tags):
+        """根据标题和标签流式生成大纲，逐步yield内容"""
         prompt = f"请根据标题“{title}”和标签“{tags}”为小说生成详细的行文大纲。要求结构清晰，分条列出主要情节节点。"
-        return await self._generate_response_by_custom_api(prompt)
+        payload = {
+            "model": self.model,
+            "messages": [{"role": "user", "content": prompt}],
+            "stream": True,
+            "max_tokens": 1024,
+            "enable_thinking": False,
+            "thinking_budget": 512,
+            "min_p": 0.05,
+            "stop": None,
+            "temperature": 0.7,
+            "top_p": 0.7,
+            "top_k": 50,
+            "frequency_penalty": 0.5,
+            "n": 1,
+            "response_format": {"type": "text"},
+        }
+        headers = {"Authorization": f"Bearer {self.api_token}", "Content-Type": "application/json"}
+        try:
+            import aiohttp
+
+            async with aiohttp.ClientSession() as session:
+                async with session.post(self.api_url, json=payload, headers=headers) as resp:
+                    resp.raise_for_status()
+                    async for line in resp.content:
+                        if line:
+                            yield line.decode("utf-8")
+        except Exception as e:
+            yield f"\n[流式生成出错: {str(e)}]"

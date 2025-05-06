@@ -166,10 +166,16 @@ async def generate_title(tags: List[str] = Body(...), stream: bool = Body(defaul
 
 
 # 新增：生成大纲
+from fastapi.responses import StreamingResponse
+
+
 @app.post("/ai/generate-outline")
 async def generate_outline(title: str = Body(...), tags: List[str] = Body(...)):
-    outline = await ai_service.generate_outline_by_title_and_tags(title, tags)
-    return {"outline": outline}
+    async def outline_generator():
+        async for chunk in ai_service.generate_outline_by_title_and_tags_stream(title, tags):
+            yield chunk
+
+    return StreamingResponse(outline_generator(), media_type="text/plain")
 
 
 # 新增：生成章节梗概

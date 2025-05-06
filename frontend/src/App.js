@@ -11,6 +11,7 @@ import StoryList from './components/StoryList';
 import Editor from './components/Editor';
 import AIAssistant from './components/AIAssistant';
 import './App.css';
+import ReactMarkdown from 'react-markdown';
 
 // 创建主题
 const theme = createTheme({
@@ -192,10 +193,11 @@ function App() {
         }
     };
 
-    // 新增：生成大纲
+    // 新增：生成大纲（流式处理）
     const generateOutline = async () => {
         try {
             setLoading(true);
+            setOutline("");
             const response = await fetch('/ai/generate-outline', {
                 method: 'POST',
                 headers: {
@@ -208,14 +210,22 @@ function App() {
                 throw new Error('生成大纲失败');
             }
 
-            const data = await response.json();
-            setOutline(data.outline);
+            // 流式读取响应
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder('utf-8');
+            let result = '';
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                result += decoder.decode(value, { stream: true });
+                setOutline(prev => prev + decoder.decode(value, { stream: true }));
+            }
         } catch (err) {
             console.error('生成大纲错误:', err);
         } finally {
             setLoading(false);
         }
-    };
+    }
 
     // 新增：生成章节梗概
     const generateChapterSummaries = async () => {
@@ -304,13 +314,17 @@ function App() {
                                 }}
                                 sx={{ mt: 1, mb: 2 }}
                             />
-                            <Button onClick={generateTitle} disabled={loading} sx={{ mr: 1 }}>
-                                生成标题
-                            </Button>
-                            {generatedTitle && (
-                                <Typography variant="h6" sx={{ mt: 2 }}>
-                                    生成标题: {generatedTitle}
+                            {generatedTitle ? (
+                                <Typography variant="h6" sx={{ mt: 2, display: 'flex', alignItems: 'center' }}>
+                                    {generatedTitle}
+                                    <span style={{ cursor: 'pointer', marginLeft: 8 }} onClick={() => { setGeneratedTitle(''); setOutline(''); }}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1976d2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 4H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><polyline points="16 2 21 7 16 7" /><line x1="12" y1="11" x2="12" y2="17" /><line x1="9" y1="14" x2="15" y2="14" /></svg>
+                                    </span>
                                 </Typography>
+                            ) : (
+                                <Button onClick={generateTitle} disabled={loading} sx={{ mr: 1 }}>
+                                    生成标题
+                                </Button>
                             )}
                             <Button onClick={generateOutline} disabled={loading} sx={{ mr: 1 }}>
                                 生成大纲
@@ -318,6 +332,14 @@ function App() {
                             <Button onClick={generateChapterSummaries} disabled={loading}>
                                 生成章节梗概
                             </Button>
+                            {outline && (
+                                <div>
+                                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>大纲内容：</Typography>
+                                    <div style={{ background: '#f6f8fa', borderRadius: 4, padding: 12, minHeight: 120, maxHeight: 400, overflowY: 'auto', border: '1px solid #e0e0e0' }}>
+                                        <ReactMarkdown>{outline}</ReactMarkdown>
+                                    </div>
+                                </div>
+                            )}
                         </Box>
                         <Box sx={{ display: 'flex', height: '100%' }}>
                             <StoryList

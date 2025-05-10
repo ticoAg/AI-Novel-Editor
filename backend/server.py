@@ -113,48 +113,25 @@ async def delete_story(story_id: str):
 # AI辅助功能
 @app.post("/ai/assist")
 async def ai_assist(request: AIRequest):
-    # 实现AI辅助功能的逻辑
-    if request.request_type == "plot":
-        # 情节建议逻辑
-        pass
-    elif request.request_type == "character":
-        # 角色发展逻辑
-        pass
-    elif request.request_type == "style":
-        # 写作风格逻辑
-        pass
-    elif request.request_type == "body":
-        # 生成正文逻辑
-        pass
-    else:
-        raise HTTPException(status_code=400, detail="无效的请求类型")
+    """
+    处理AI辅助请求
+    """
+    try:
+        if request.request_type == "plot":
+            response = await ai_service.generate_plot_suggestion(request.story_content, request.specific_request)
+        elif request.request_type == "character":
+            response = await ai_service.generate_character_suggestion(request.story_content, request.specific_request)
+        elif request.request_type == "style":
+            response = await ai_service.generate_style_suggestion(request.story_content, request.specific_request)
+        elif request.request_type == "body":
+            response = await ai_service.generate_outline(request.story_content, None, request.specific_request)
+        else:
+            raise HTTPException(status_code=400, detail="无效的请求类型")
 
-
-@app.middleware("http")
-async def log_requests(request: Request, call_next: Callable):
-    # 缓存 body 开始
-    if request.method in ["POST", "PUT", "PATCH"]:
-        body = await request.body()
-
-        async def re_read():
-            return {"type": "http.request", "body": body}
-
-        request._receive = re_read
-    # 缓存 body 结束
-
-    # 打印查询参数或 body
-    if request.method == "GET":
-        logger.info(f"Query Parameters: {request.query_params}")
-    elif request.method in ["POST", "PUT", "PATCH"]:
-        try:
-            json_body = await request.json()
-            logger.info(f"Request Body: {json_body}")
-        except Exception as e:
-            logger.warning(f"Failed to parse request body: {e}")
-
-    response = await call_next(request)
-    logger.info(f"Request: {request.method} {request.url} - Status: {response.status_code}")
-    return response
+        return {"response": response}
+    except Exception as e:
+        logger.error(f"AI辅助请求处理失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"AI辅助请求处理失败: {str(e)}")
 
 
 # 新增：生成标题
@@ -185,5 +162,5 @@ async def generate_chapter_summaries(outline: str = Body(...)):
     pass
 
 
-if __name__ == "__main__":
-    uvicorn.run("server:app", host="0.0.0.0", port=8000)
+# if __name__ == "__main__":
+#     uvicorn.run("server:app", host="0.0.0.0", port=8000)

@@ -7,6 +7,7 @@ import { TextField, Button, Typography } from '@mui/material';
 
 // 导入组件
 import Header from './components/Header';
+import ReactMarkdown from 'react-markdown';
 import StoryList from './components/StoryList';
 import Editor from './components/Editor';
 import AIAssistant from './components/AIAssistant';
@@ -50,6 +51,7 @@ function App() {
     const [selectedTags, setSelectedTags] = useState([]);
     const [generatedTitle, setGeneratedTitle] = useState('');
     const [outline, setOutline] = useState('');
+    const [isEditing, setIsEditing] = useState(false);
 
 
     // 获取所有小说
@@ -172,13 +174,16 @@ function App() {
         try {
             setLoading(true);
             // 确保selectedTags是一个数组，并且转换为后端期望的JSON字符串格式
-            const tagsJsonString = JSON.stringify({ tags: selectedTags.map(tag => tag.trim()) });
+            const requestBody = JSON.stringify({
+                tags: selectedTags.map(tag => tag.trim()),
+                stream: false
+            });
             const response = await fetch('/ai/generate-title', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: tagsJsonString, // 直接发送序列化的标签数组
+                body: requestBody
             });
 
             if (!response.ok) {
@@ -368,3 +373,61 @@ function App() {
 }
 
 export default App;
+
+// 处理编辑状态切换
+const handleEditorFocus = () => setIsEditing(true);
+const handleEditorBlur = () => setIsEditing(false);
+
+// 添加拖拽处理函数
+const handleDragStart = (e) => {
+    document.addEventListener('mousemove', handleDragMove);
+    document.addEventListener('mouseup', handleDragEnd);
+};
+
+const handleDragMove = (e) => {
+    // 实现侧边栏宽度调整逻辑
+};
+
+const handleDragEnd = () => {
+    document.removeEventListener('mousemove', handleDragMove);
+    document.removeEventListener('mouseup', handleDragEnd);
+};
+
+<Box
+    sx={{
+        flex: 2,
+        p: 2,
+        overflowY: 'auto',
+        borderRight: '1px solid #ddd',
+        backgroundColor: '#fff',
+    }}
+    onFocus={handleEditorFocus}
+    onBlur={handleEditorBlur}
+>
+    {/* 显示标题 */}
+    {generatedTitle && (
+        <Box sx={{ mb: 2 }}>
+            <Typography variant="body1">{generatedTitle}</Typography>
+        </Box>
+    )}
+
+    {/* 大纲编辑器 */}
+    <TextField
+        label="大纲编辑器（Markdown格式）"
+        multiline
+        rows={6}
+        fullWidth
+        variant="outlined"
+        value={outline}
+        onChange={(e) => setOutline(e.target.value)}
+        disabled={loading}
+    />
+
+    {/* 大纲预览 */}
+    <Box sx={{ mt: 2, border: '1px solid #ddd', p: 1, borderRadius: 1, backgroundColor: '#fff' }}>
+        <Typography variant="subtitle2" gutterBottom>大纲预览（Markdown渲染）:</Typography>
+        <Box sx={{ bgcolor: '#f9f9f9', p: 1, borderRadius: 1 }}>
+            <ReactMarkdown>{outline}</ReactMarkdown>
+        </Box>
+    </Box>
+</Box>

@@ -37,11 +37,27 @@ const AIAssistant = ({ story, getAIAssistance, loading }) => {
 
         setIsRequesting(true);
         try {
-            const response = await getAIAssistance(story.content, assistanceType, specificRequest);
-            setAiResponse(response);
+            const response = await fetch('http://localhost:8000/ai/assist', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    story_content: story.content,
+                    request_type: assistanceType,
+                    specific_request: specificRequest
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            setAiResponse(data.response);
         } catch (error) {
             console.error('获取建议出错:', error);
-            setAiResponse('获取建议时出错，请稍后再试');
+            setAiResponse(`获取建议时出错: ${error.message}`);
         } finally {
             setIsRequesting(false);
         }

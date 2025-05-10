@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Box, TextField, Paper, Typography, Button, CircularProgress } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
+import ReactMarkdown from 'react-markdown';
 
-const Editor = ({ story, onSave, loading }) => {
+const Editor = ({ story, onSave, loading, outline }) => {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [isEdited, setIsEdited] = useState(false);
@@ -86,11 +87,17 @@ const Editor = ({ story, onSave, loading }) => {
                         variant="outlined"
                         value={content}
                         onChange={handleContentChange}
-                        sx={{ flexGrow: 1 }}
+                        sx={{ flexGrow: 1, mb: 2 }}
                         InputProps={{
                             sx: { height: '100%', '& .MuiInputBase-inputMultiline': { height: '100%' } }
                         }}
                     />
+                    {outline && (
+                        <Paper elevation={1} sx={{ p: 2, mb: 2 }}>
+                            <Typography variant="h6" gutterBottom>大纲预览</Typography>
+                            <ReactMarkdown>{outline}</ReactMarkdown>
+                        </Paper>
+                    )}
                 </>
             )}
         </Paper>
